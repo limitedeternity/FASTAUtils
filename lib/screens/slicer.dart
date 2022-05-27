@@ -181,7 +181,7 @@ class SlicerScreen extends ConsumerWidget {
                                 showArnaSnackbar(
                                   context: context,
                                   message:
-                                      'Started task with parameters: $params',
+                                      'Task accepted with parameters: $params',
                                 );
 
                                 ref

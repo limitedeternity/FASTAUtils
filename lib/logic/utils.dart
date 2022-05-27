@@ -1,11 +1,6 @@
 extension WrapExtension<T> on Iterable<T> {
-  Iterable<Iterable<T>> wrap(
-    int margin, [
-    int skipFirst = 0,
-  ]) sync* {
-    for (var iter = skip(skipFirst);
-        iter.isNotEmpty;
-        iter = iter.skip(margin)) {
+  Iterable<Iterable<T>> wrap(int margin) sync* {
+    for (var iter = this; iter.isNotEmpty; iter = iter.skip(margin)) {
       yield iter.take(margin);
     }
   }

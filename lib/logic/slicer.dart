@@ -142,20 +142,16 @@ Future<void> runSlicer(
     }
 
     final seqWithOverlaps = seq.sequenceString
-        .wrap(sequenceMaxLength - overlapLength, sequenceMaxLength)
+        .skip(sequenceMaxLength)
+        .wrap(sequenceMaxLength - overlapLength)
         .map((e) => e.join())
-        .fold<String>(
-          seq.sequenceString.take(sequenceMaxLength).join(),
-          (acc, curr) => [
-            acc,
-            acc.iterable.skip(acc.length - overlapLength).join(),
-            curr
-          ].join(),
-        )
-        .iterable
-        .wrap(sequenceMaxLength)
-        .map((e) => e.join())
-        .toList(growable: true);
+        .fold<List<String>>(
+      [seq.sequenceString.take(sequenceMaxLength).join()],
+      (acc, curr) => [
+        ...acc,
+        acc.last.iterable.skip(acc.last.length - overlapLength).join() + curr
+      ],
+    );
 
     for (var i = 0; i < seqWithOverlaps.length - 1; ++i) {
       final overlapBestFit = overlapShiftGenerator(

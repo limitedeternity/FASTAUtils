@@ -135,6 +135,7 @@ $RECYCLE.BIN/
 .DS_Store
 .externalNativeBuild
 .flutter-plugins
+.flutter-plugins-dependencies
 .fseventsd
 .fuse_hidden*
 .gradle

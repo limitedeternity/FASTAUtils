@@ -86,43 +86,6 @@ Iterable<Tuple2<String, String>> overlapShiftGenerator(
   }
 }
 
-Iterable<Tuple2<String, String>> stringShiftGenerator(
-  String left,
-  String right,
-  int step,
-  int minRemainderLen,
-) sync* {
-  do {
-    yield Tuple2(left, right);
-  } while (step == 0);
-
-  int numChunks;
-
-  if (step > 0) {
-    numChunks = (right.length - minRemainderLen) ~/ step;
-  } else {
-    numChunks = (left.length - minRemainderLen) ~/ step.abs();
-  }
-
-  if (numChunks < 0) {
-    numChunks = 0;
-  }
-
-  for (final i in 0.to(numChunks * step, step: step)) {
-    if (step > 0) {
-      yield Tuple2(
-        left + right.iterable.take(i + step).join(),
-        right.iterable.skip(i + step).join(),
-      );
-    } else {
-      yield Tuple2(
-        left.iterable.take(left.length + i + step).join(),
-        left.iterable.skip(left.length + i + step).join() + right,
-      );
-    }
-  }
-}
-
 Future<void> runSlicer(
   Tuple2<XFile, Stream<FastaSequence>> fastaFileAndSequences,
   Tuple3<int, int, int> operationParameters,
@@ -188,8 +151,7 @@ Future<void> runSlicer(
         seqWithOverlaps[i + 1] = overlapBestFit.item1;
       }
 
-      if (seqWithOverlaps[i + 1].length > sequenceMaxLength &&
-          2 * overlapLength <= sequenceMaxLength) {
+      if (seqWithOverlaps[i + 1].length > sequenceMaxLength) {
         final leftOverlap =
             seqWithOverlaps[i + 1].iterable.take(overlapLength).join();
 
@@ -198,55 +160,13 @@ Future<void> runSlicer(
             .skip(seqWithOverlaps[i + 1].length - overlapLength)
             .join();
 
-        final fragmentList = [
-          seqWithOverlaps[i + 1]
-              .iterable
-              .take(seqWithOverlaps[i + 1].length - overlapLength)
-              .skip(overlapLength)
-              .join()
-        ];
-
-        for (var j = 0;
-            overlapLength + fragmentList.last.length > sequenceMaxLength;
-            ++j) {
-          final elementToSpread = fragmentList.last;
-
-          final leftHalf =
-              elementToSpread.iterable.take(elementToSpread.length ~/ 2).join();
-
-          final rightHalf =
-              elementToSpread.iterable.skip(elementToSpread.length ~/ 2).join();
-
-          final spreadBestFit = [
-            stringShiftGenerator(
-              leftHalf,
-              rightHalf,
-              -1,
-              overlapLength,
-            ),
-            stringShiftGenerator(
-              leftHalf,
-              rightHalf,
-              1,
-              overlapLength,
-            ),
-          ]
-              .flatten()
-              .where(
-                (leftAndRight) =>
-                    overlapLength + leftAndRight.item0.length <=
-                    sequenceMaxLength,
-              )
-              .orderByDescending((leftAndRight) => leftAndRight.item0.length)
-              .firstOrDefault();
-
-          if (spreadBestFit == null) {
-            break;
-          }
-
-          fragmentList[j] = spreadBestFit.item0;
-          fragmentList.add(spreadBestFit.item1);
-        }
+        final fragmentList = seqWithOverlaps[i + 1]
+            .iterable
+            .take(seqWithOverlaps[i + 1].length - overlapLength)
+            .skip(overlapLength)
+            .wrap(sequenceMaxLength - overlapLength)
+            .map((e) => e.join())
+            .toList(growable: true);
 
         if (2 * overlapLength + fragmentList.last.length <= sequenceMaxLength) {
           fragmentList.last += rightOverlap;
